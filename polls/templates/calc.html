@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Django Calculator</title>
+</head>
+<body>
+    <h2>Sum of Two Numbers</h2>
+    <form action="{% url 'calc' %}" method="post">
+        {% csrf_token %}
+        <input type="number" name="num1" placeholder="First Number" required> +
+        <input type="number" name="num2" placeholder="Second Number" required>
+        <button type="submit">Calculate</button>
+    </form>
+
+    {% if result is not None %}
+        <h3>Result: {{ result }}</h3>
+    {% endif %}
+</body>
+</html>
