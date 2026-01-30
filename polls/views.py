@@ -1,49 +1,53 @@
-from django.shortcuts import render, get_object_or_404
-from django.http import HttpResponse
-from .models import Question
+from django.db.models import F
+from django.http import HttpResponseRedirect
+from django.shortcuts import get_object_or_404, render
+from django.urls import reverse
+from django.views import generic
 
-def index(request):
-    """
-    URL: /polls/
-    Uses: polls/templates/index.html
-    """
-    latest_question_list = Question.objects.order_by("-pub_date")[:5]
-    context = {"latest_question_list": latest_question_list}
-    return render(request, "index.html", context)
+from .models import Choice, Question
 
-def detail(request, question_id):
-    """
-    URL: /polls/<id>/
-    Uses: polls/templates/detail.html
-    """
+class IndexView(generic.ListView):
+    template_name = "polls/index.html"
+    context_object_name = "latest_question_list"
+
+    def get_queryset(self):
+        """Return the last five published questions."""
+        return Question.objects.order_by("-pub_date")[:5]
+
+class DetailView(generic.DetailView):
+    model = Question
+    template_name = "polls/detail.html"
+
+class ResultsView(generic.DetailView):
+    model = Question
+    template_name = "polls/results.html"
+
+def vote(request, question_id):
     question = get_object_or_404(Question, pk=question_id)
-    return render(request, "detail.html", {"question": question})
+    try:
+        selected_choice = question.choice_set.get(pk=request.POST["choice"])
+    except (KeyError, Choice.DoesNotExist):
+        return render(
+            request,
+            "polls/detail.html",
+            {
+                "question": question,
+                "error_message": "You didn't select a choice.",
+            },
+        )
+    else:
+        selected_choice.votes = F("votes") + 1
+        selected_choice.save()
+        return HttpResponseRedirect(reverse("polls:results", args=(question.id,)))
 
+# Keep your custom views if you need them for other exercises
 def hello_view(request):
-    """
-    URL: /polls/hello/
-    Uses: polls/templates/hello.html
-    """
     return render(request, 'hello.html')
 
 def calc_view(request):
-    """
-    URL: /polls/calc/
-    Uses: polls/templates/calc.html
-    """
     result = None
     if request.method == "POST":
         val1 = int(request.POST.get('num1', 0))
         val2 = int(request.POST.get('num2', 0))
         result = val1 + val2
-    
     return render(request, 'calc.html', {'result': result})
-
-def results(request, question_id):
-    """URL: /polls/<id>/results/"""
-    response = "You're looking at the results of question %s."
-    return HttpResponse(response % question_id)
-
-def vote(request, question_id):
-    """URL: /polls/<id>/vote/"""
-    return HttpResponse("You're voting on question %s." % question_id)
